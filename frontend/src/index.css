@@ -1,0 +1,588 @@
+/* ===== СБРОС СТИЛЕЙ И БАЗОВЫЕ НАСТРОЙКИ ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box; /* Упрощает расчет размеров элементов */
+}
+
+/* Базовые стили страницы */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f5f5f5;
+}
+
+/* ===== НАВИГАЦИЯ И ШАПКА ===== */
+/* Основная навигационная панель */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #2c3e50;
+  color: white;
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  position: relative;
+  z-index: 100;
+}
+
+/* Стили для логотипа/названия сайта */
+.nav-brand a {
+  color: white;
+  text-decoration: none;
+  font-size: 1.5rem;
+  font-weight: bold;
+  transition: color 0.3s;
+}
+
+.nav-brand a:hover {
+  color: #3498db; /* Изменение цвета при наведении */
+}
+
+/* Контейнер для ссылок навигации */
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  position: relative;
+}
+
+/* Отдельный элемент навигации */
+.nav-item {
+  position: relative;
+}
+
+/* Ссылки в навигации */
+.nav-item a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.3s;
+  display: block;
+  position: relative;
+}
+
+/* Активная ссылка в навигации */
+.nav-item.active a {
+  color: white;
+}
+
+/* Эффект при наведении на ссылку */
+.nav-item a:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Подчеркивание активной ссылки */
+.nav-underline {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #3498db, #27ae60);
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+}
+
+/* ===== ГЛАВНАЯ СТРАНИЦА ===== */
+/* Основной контейнер главной страницы */
+.home {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Шапка с поиском */
+.search-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+/* Заголовок на главной */
+.search-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #2c3e50;
+}
+
+/* Панель поиска */
+.search-bar {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Поле ввода поиска */
+.search-bar input {
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 100%;
+}
+
+/* Кнопка поиска */
+.search-bar button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.search-bar button:hover {
+  background-color: #2980b9;
+}
+
+/* Фильтры поиска */
+.filters {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Выпадающие списки фильтров */
+.filters select {
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+}
+
+/* ===== КАРТОЧКИ АЛГОРИТМОВ ===== */
+/* Сетка карточек алгоритмов */
+.algorithms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+/* Отдельная карточка алгоритма */
+.algorithm-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+/* Эффект при наведении на карточку */
+.algorithm-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+/* Заголовок карточки алгоритма */
+.algorithm-card h3 {
+  font-size: 1.25rem;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+/* Описание алгоритма */
+.algorithm-card p {
+  color: #666;
+  flex-grow: 1;
+  line-height: 1.5;
+}
+
+/* Контейнер для тегов */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Отдельный тег */
+.tag {
+  background: #ecf0f1;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  color: #2c3e50;
+}
+
+/* Нижняя часть карточки */
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+}
+
+/* Стили цены */
+.price {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: bold;
+}
+
+/* Бесплатный алгоритм */
+.price.free {
+  background: #d4edda;
+  color: #155724;
+}
+
+/* Платный алгоритм */
+.price.paid {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* Кнопка в карточке */
+.card-footer button {
+  padding: 0.5rem 1rem;
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.card-footer button:hover {
+  background-color: #219a52;
+}
+
+/* ===== ФОРМЫ ===== */
+/* Страницы с формами */
+.add-algorithm-page,
+.profile-page {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Группа полей формы */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+/* Метка поля формы */
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Поля ввода, текстовые области и выпадающие списки */
+.form-group input:not([type="checkbox"]),
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+/* Текстовая область */
+.form-group textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* Состояние фокуса для полей ввода */
+.form-group input:not([type="checkbox"]):focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+/* Строка формы с двумя колонками */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Кнопка отправки формы */
+.submit-btn {
+  background-color: #3498db;
+  color: white;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.submit-btn:hover {
+  background-color: #2980b9;
+}
+
+/* ===== СТРАНИЦА ПРОФИЛЯ ===== */
+/* Блок информации пользователя */
+.user-info {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+}
+
+/* ===== РЕДАКТОР КОДА ===== */
+/* Контейнер редактора кода */
+.code-editor-container {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* Стили редактора кода */
+.code-editor-container .cm-editor {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 14px;
+}
+
+/* Боковая панель с номерами строк */
+.code-editor-container .cm-gutters {
+  background-color: #1e1e1e;
+  border-right: 1px solid #333;
+}
+
+/* Активная строка в боковой панели */
+.code-editor-container .cm-activeLineGutter {
+  background-color: #2a2a2a;
+}
+
+/* ===== ПЕРЕКЛЮЧАТЕЛЬ ПЛАТНОГО АЛГОРИТМА ===== */
+/* Секция переключателя платного алгоритма */
+.paid-toggle-section {
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  width: 100%;
+}
+
+/* Контейнер переключателя */
+.toggle-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Метка переключателя */
+.toggle-label {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+/* Переключатель (кастомный чекбокс) */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+/* Скрываем оригинальный чекбокс */
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Ползунок переключателя */
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+/* Круглая часть ползунка */
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+/* Состояние включенного переключателя */
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #27ae60;
+}
+
+/* Анимация перемещения кружка */
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+/* Эффект фокуса */
+.toggle-switch input:focus + .toggle-slider {
+  box-shadow: 0 0 1px #27ae60;
+}
+
+/* ===== ПОЛЕ ВВОДА ЦЕНЫ ===== */
+/* Обертка поля ввода цены */
+.price-input-wrapper {
+  overflow: hidden;
+  transition: all 0.3s ease-in-out;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Видимое состояние поля цены */
+.price-input-wrapper.visible {
+  margin-top: 1rem;
+  max-height: 120px;
+  opacity: 1;
+}
+
+/* Скрытое состояние поля цены */
+.price-input-wrapper.hidden {
+  margin-top: 0;
+  max-height: 0;
+  opacity: 0;
+}
+
+/* Контейнер поля ввода цены */
+.price-input-container {
+  padding-top: 1rem;
+  border-top: 1px solid #e1e5e9;
+}
+
+/* Группа поля ввода цены */
+.price-input-group {
+  display: flex;
+  align-items: center;
+  max-width: 200px;
+  position: relative;
+}
+
+/* Поле ввода цены */
+.price-input {
+  padding: 0.5rem;
+  padding-right: 3rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  width: 100%;
+  transition: border-color 0.3s;
+  -moz-appearance: textfield; /* Убираем стрелки в Firefox */
+}
+
+/* Убираем стрелки в Webkit-браузерах */
+.price-input::-webkit-outer-spin-button,
+.price-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Состояние фокуса поля цены */
+.price-input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+/* Обозначение валюты */
+.currency {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #7f8c8d;
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+/* Подсказка под полем цены */
+.price-hint {
+  font-size: 0.75rem;
+  color: #7f8c8d;
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+}
+
+/* ===== АДАПТИВНЫЙ ДИЗАЙН ===== */
+@media (max-width: 768px) {
+  /* Адаптация строк формы */
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Уменьшение шрифта редактора кода */
+  .code-editor-container {
+    font-size: 12px;
+  }
+  
+  /* Адаптация переключателя платного алгоритма */
+  .paid-toggle-section {
+    max-width: 100%;
+    width: 100%;
+  }
+  
+  /* Адаптация поля ввода цены */
+  .price-input-group {
+    max-width: 100%;
+  }
+  
+  /* Адаптация поля поиска */
+  .search-bar input {
+    width: 100%;
+  }
+  
+  /* Адаптация навигации */
+  .nav-links {
+    gap: 1rem;
+  }
+  
+  .navbar {
+    padding: 1rem;
+  }
+}
+
+/* ===== СЛУЖЕБНЫЕ СТИЛИ ===== */
+/* Метка для чекбокса */
+.form-group label.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Стилизация чекбокса */
+.form-group input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+/* Контейнер для анимированных страниц */
+.page-container {
+  min-height: calc(100vh - 80px);
+}

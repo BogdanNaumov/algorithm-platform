@@ -6,4 +6,5 @@
 2) входим в папку frontend
 3) открываем cmd в этой папке
 4) npm install
-4) npm run dev 
+5) npm run dev
+Деплой: https://algorithm-platform.vercel.app/

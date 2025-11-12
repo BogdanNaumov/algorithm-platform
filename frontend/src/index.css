@@ -13,6 +13,11 @@ body {
   background-color: #f5f5f5;
 }
 
+/* Предотвращаем зум при фокусе на iOS */
+input, textarea, select {
+  font-size: 16px;
+}
+
 /* ===== НАВИГАЦИЯ И ШАПКА ===== */
 /* Основная навигационная панель */
 .navbar {
@@ -106,6 +111,11 @@ body {
   color: #2c3e50;
 }
 
+.search-header p {
+  color: #666;
+  font-size: 1.1rem;
+}
+
 /* Панель поиска */
 .search-bar {
   display: flex;
@@ -134,6 +144,7 @@ body {
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.3s;
+  min-height: 44px; /* Минимальная высота для touch */
 }
 
 .search-bar button:hover {
@@ -189,6 +200,7 @@ body {
   font-size: 1.25rem;
   color: #2c3e50;
   margin-bottom: 0.5rem;
+  line-height: 1.3;
 }
 
 /* Описание алгоритма */
@@ -251,6 +263,7 @@ body {
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.3s;
+  min-height: 44px; /* Минимальная высота для touch */
 }
 
 .card-footer button:hover {
@@ -323,6 +336,7 @@ body {
   font-size: 1.1rem;
   cursor: pointer;
   transition: background-color 0.3s;
+  min-height: 44px; /* Минимальная высота для touch */
 }
 
 .submit-btn:hover {
@@ -531,40 +545,240 @@ body {
 }
 
 /* ===== АДАПТИВНЫЙ ДИЗАЙН ===== */
+
+/* Планшеты и маленькие ноутбуки */
+@media (max-width: 1024px) {
+  .home {
+    padding: 1.5rem;
+  }
+  
+  .algorithms-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+/* Мобильные устройства (горизонтальная ориентация) */
 @media (max-width: 768px) {
-  /* Адаптация строк формы */
+  /* Навигация */
+  .navbar {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .nav-links {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  
+  .nav-item a {
+    text-align: center;
+    padding: 0.75rem;
+    min-height: 44px; /* Минимальная высота для touch */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .nav-brand {
+    font-size: 1.3rem;
+  }
+  
+  /* Главная страница */
+  .home {
+    padding: 1rem;
+  }
+  
+  .search-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .search-header p {
+    font-size: 1rem;
+  }
+  
+  .search-bar {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .search-bar input {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .search-bar button {
+    width: 100%;
+  }
+  
+  .filters {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .filters select {
+    width: 100%;
+  }
+  
+  /* Карточки алгоритмов */
+  .algorithms-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  
+  .algorithm-card {
+    padding: 1.25rem;
+  }
+  
+  .algorithm-card h3 {
+    font-size: 1.1rem;
+  }
+  
+  .card-footer {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+  
+  .card-footer button {
+    width: 100%;
+  }
+  
+  /* Формы */
+  .add-algorithm-page,
+  .profile-page {
+    padding: 1rem;
+  }
+  
   .form-row {
     grid-template-columns: 1fr;
   }
   
-  /* Уменьшение шрифта редактора кода */
-  .code-editor-container {
-    font-size: 12px;
+  .form-group input:not([type="checkbox"]),
+  .form-group textarea,
+  .form-group select {
+    padding: 1rem;
   }
   
-  /* Адаптация переключателя платного алгоритма */
+  .submit-btn {
+    width: 100%;
+    padding: 1.2rem;
+  }
+  
+  /* Переключатель платного алгоритма */
   .paid-toggle-section {
     max-width: 100%;
-    width: 100%;
   }
   
-  /* Адаптация поля ввода цены */
   .price-input-group {
     max-width: 100%;
   }
   
-  /* Адаптация поля поиска */
-  .search-bar input {
-    width: 100%;
+  /* Редактор кода */
+  .code-editor-container {
+    font-size: 12px;
   }
   
-  /* Адаптация навигации */
-  .nav-links {
-    gap: 1rem;
+  .code-editor-container .cm-editor {
+    font-size: 12px;
   }
   
-  .navbar {
+  /* Профиль */
+  .user-info {
+    padding: 1.5rem;
+  }
+}
+
+/* Маленькие мобильные устройства */
+@media (max-width: 480px) {
+  .search-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .algorithm-card {
     padding: 1rem;
+  }
+  
+  .algorithm-card h3 {
+    font-size: 1rem;
+  }
+  
+  .user-info {
+    padding: 1rem;
+  }
+  
+  .nav-brand {
+    font-size: 1.2rem;
+  }
+  
+  body {
+    font-size: 14px;
+  }
+}
+
+/* Очень маленькие устройства (например, iPhone 5/SE) */
+@media (max-width: 320px) {
+  .home {
+    padding: 0.5rem;
+  }
+  
+  .algorithm-card {
+    padding: 0.75rem;
+  }
+  
+  .search-header h1 {
+    font-size: 1.3rem;
+  }
+}
+
+/* Улучшения для touch-устройств */
+@media (hover: none) and (pointer: coarse) {
+  .algorithm-card:hover {
+    transform: none; /* Убираем трансформации на touch-устройствах */
+  }
+  
+  .nav-item a:hover {
+    background-color: transparent; /* Убираем hover эффекты */
+  }
+  
+  /* Делаем все интерактивные элементы достаточно большими для пальцев */
+  button, 
+  .nav-item a,
+  .search-bar input,
+  .filters select,
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    min-height: 44px;
+  }
+  
+  .tag {
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* Поддержка landscape ориентации на мобильных */
+@media (max-height: 500px) and (orientation: landscape) {
+  .navbar {
+    padding: 0.5rem 1rem;
+  }
+  
+  .home {
+    padding: 0.5rem;
+  }
+  
+  .search-header {
+    margin-bottom: 1.5rem;
+  }
+  
+  .algorithms-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
   }
 }
 
@@ -580,9 +794,21 @@ body {
 .form-group input[type="checkbox"] {
   width: auto;
   margin: 0;
+  min-height: auto;
 }
 
 /* Контейнер для анимированных страниц */
 .page-container {
   min-height: calc(100vh - 80px);
+}
+
+/* Улучшаем скролл на мобильных */
+@media (max-width: 768px) {
+  html {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  body {
+    overflow-x: hidden;
+  }
 }

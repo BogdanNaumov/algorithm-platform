@@ -1,6 +1,6 @@
 import { Algorithm, User, AuthResponse, LoginData, RegisterData, ModeratedAlgorithm, ModerationRequest } from '../types';
 
-const API_BASE_URL = 'go0osp.pythonanywhere.com/api';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 export interface ApiAlgorithm {
   id: number;

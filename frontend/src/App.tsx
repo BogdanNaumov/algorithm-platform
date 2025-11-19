@@ -77,38 +77,62 @@ function AppContent() {
   // Определяем, активна ли кнопка входа/регистрации
   const isAuthPageActive = location.pathname === '/login' || location.pathname === '/register';
 
-  // Улучшенная проверка прав модератора
+  // Улучшенная проверка прав модератора (такая же как в Moderation.tsx)
   const hasModerationAccess = () => {
     if (!user) return false;
     
-    // Для отладки - выводим информацию о пользователе
-    console.log('User object for moderation access check:', user);
+    console.log('Checking moderation access for user:', user);
     
     const userAny = user as any;
     
     // 1. Проверяем поле role
-    if (user.role === 'moderator' || user.role === 'admin') return true;
+    if (user.role === 'moderator' || user.role === 'admin') {
+      console.log('Access granted by role:', user.role);
+      return true;
+    }
     
-    // 2. Проверяем другие возможные поля
-    if (userAny.is_staff || userAny.is_superuser || userAny.is_moderator) return true;
+    // 2. Проверяем Django-specific поля
+    if (userAny.is_staff || userAny.is_superuser) {
+      console.log('Access granted by Django fields - is_staff:', userAny.is_staff, 'is_superuser:', userAny.is_superuser);
+      return true;
+    }
     
     // 3. Проверяем группы пользователя
-    if (userAny.groups && (
-      userAny.groups.includes('Модераторы') || 
-      userAny.groups.includes('Moderators') ||
-      userAny.groups.includes('Администраторы') ||
-      userAny.groups.includes('Administrators')
-    )) return true;
+    if (userAny.groups) {
+      let groups: string[] = [];
+      
+      // Обрабатываем разные форматы групп
+      if (Array.isArray(userAny.groups)) {
+        groups = userAny.groups.map((group: any) => 
+          typeof group === 'string' ? group.toLowerCase() : 
+          (group.name ? group.name.toLowerCase() : '')
+        );
+      }
+      
+      const moderatorGroups = [
+        'moderator', 'moderators', 'модератор', 'модераторы',
+        'admin', 'administrators', 'администратор', 'администраторы'
+      ];
+      
+      const hasModeratorGroup = groups.some((group: string) => 
+        moderatorGroups.includes(group)
+      );
+      
+      if (hasModeratorGroup) {
+        console.log('Access granted by groups:', groups);
+        return true;
+      }
+    }
     
-    // 4. Проверяем по username (если суперпользователь имеет определенное имя)
-    const adminUsernames = ['admin', 'administrator', 'superuser', 'root'];
-    if (adminUsernames.includes(user.username.toLowerCase())) return true;
+    // 4. Временная заглушка для тестирования - разрешить доступ для определенных пользователей
+    const testModerators = ['admin', 'moderator', 'testmod', 'administrator'];
+    if (testModerators.includes(user.username.toLowerCase())) {
+      console.log('Access granted for test user:', user.username);
+      return true;
+    }
     
-    // 5. Временное решение для тестирования - разрешить всем авторизованным пользователям
-    // ЗАКОММЕНТИРУЙТЕ ЭТУ СТРОКУ ПОСЛЕ ТЕСТИРОВАНИЯ!
-    return true;
-    
-    // return false; // Раскомментируйте эту строку после тестирования
+    console.log('Access DENIED for user:', user);
+    return false;
   };
 
   return (
@@ -162,7 +186,7 @@ function AppContent() {
           )}
 
           {/* Показываем "Модерация" только пользователям с правами модератора */}
-          {hasModerationAccess() && (
+          {user && hasModerationAccess() && (
             <motion.div 
               className={`nav-item ${activeTab === '/moderation' ? 'active' : ''}`}
               whileHover={{ scale: 1.05 }}
@@ -173,7 +197,7 @@ function AppContent() {
                   variants={tabVariants}
                   animate={activeTab === '/moderation' ? 'active' : 'inactive'}
                 >
-                  Модерация
+                  ⚡ Модерация
                 </motion.span>
                 <motion.div 
                   className="nav-underline"
@@ -196,7 +220,7 @@ function AppContent() {
                   variants={tabVariants}
                   animate={activeTab === '/profile' ? 'active' : 'inactive'}
                 >
-                  Профиль ({user.username})
+                  👤 {user.username}
                 </motion.span>
                 <motion.div 
                   className="nav-underline"
@@ -216,7 +240,7 @@ function AppContent() {
                   variants={tabVariants}
                   animate={isAuthPageActive ? 'active' : 'inactive'}
                 >
-                  Войти/Зарегистрироваться
+                  Войти
                 </motion.span>
                 <motion.div 
                   className="nav-underline"

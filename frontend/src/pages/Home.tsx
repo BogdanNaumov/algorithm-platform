@@ -1,99 +1,223 @@
-import React, { useState } from 'react';
-import { Algorithm } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { apiService } from "../service/api";
+import { Algorithm } from "../types";
+import './Home.css'; // Добавьте эту строку в начало файла Home.tsx
 
 const Home: React.FC = () => {
+  const [algorithms, setAlgorithms] = useState<Algorithm[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [algorithms] = useState<Algorithm[]>([
-    {
-      id: '1',
-      title: 'Быстрая сортировка (Quick Sort)',
-      description: 'Эффективный алгоритм сортировки со средней сложностью O(n log n). Идеален для больших массивов данных.',
-      author: 'Иван Иванов',
-      tags: ['сортировка', 'C++', 'рекурсия'],
-      isPaid: false,
-      createdAt: '2024-01-15',
-      updatedAt: '2024-01-15'
-    },
-    {
-      id: '2',
-      title: 'Алгоритм Дейкстры',
-      description: 'Алгоритм для нахождения кратчайшего пути в графе с неотрицательными весами ребер.',
-      author: 'Петр Петров',
-      tags: ['графы', 'поиск пути', 'C++'],
-      isPaid: true,
-      createdAt: '2024-01-10',
-      updatedAt: '2024-01-12'
-    },
-    {
-      id: '3',
-      title: 'Двоичный поиск',
-      description: 'Эффективный алгоритм поиска в отсортированном массиве со сложностью O(log n).',
-      author: 'Мария Сидорова',
-      tags: ['поиск', 'массивы', 'C++'],
-      isPaid: false,
-      createdAt: '2024-01-08',
-      updatedAt: '2024-01-08'
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [languageFilter, setLanguageFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+
+  const loadAlgorithms = async (query: string = '') => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiService.getAlgorithms(query);
+      setAlgorithms(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ошибка при загрузке алгоритмов';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  useEffect(() => {
+    loadAlgorithms();
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    loadAlgorithms(searchTerm);
+  };
+
+  const handleReset = () => {
+    setSearchTerm('');
+    setLanguageFilter('all');
+    setTypeFilter('all');
+    loadAlgorithms();
+  };
+
+  const filteredAlgorithms = algorithms.filter(algorithm => {
+    if (languageFilter !== 'all' && algorithm.language !== languageFilter) {
+      return false;
+    }
+    
+    if (typeFilter === 'free' && algorithm.isPaid) return false;
+    if (typeFilter === 'paid' && !algorithm.isPaid) return false;
+    
+    return true;
+  });
+
+  if (loading) {
+    return (
+      <div className="home">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <div className="loading-text">Загрузка алгоритмов...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="home">
-      <header className="search-header">
-        <h1>Платформа алгоритмов</h1>
-        <p>Найдите идеальное решение для вашей задачи</p>
-        <div className="search-bar">
-          <input
-            type="text"
-            placeholder="Поиск алгоритмов по названию, описанию или тегам..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <button>Найти</button>
+  <div className="home">
+    <header className="hero-section">
+      <div className="hero-content">
+        <h1 className="hero-title">Платформа алгоритмов</h1>
+        <p className="hero-subtitle">Найдите идеальное решение для вашей задачи среди тысяч алгоритмов</p>
+        
+        <form className="search-container" onSubmit={handleSearch}>
+          <div className="search-input-wrapper">
+            <input
+              type="text"
+              placeholder="Поиск алгоритмов по названию, описанию или тегам..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+            <button type="submit" className="search-btn">
+              <span className="search-icon">🔍</span>
+              Найти
+            </button>
+          </div>
+        </form>
+      </div>
+    </header>
+
+    <main className="main-content">
+      {error && (
+        <div className="error-banner">
+          <div className="error-content">
+            <span className="error-icon">⚠️</span>
+            <div className="error-text">
+              <strong>Ошибка:</strong> {error}
+            </div>
+            <button onClick={() => loadAlgorithms()} className="retry-btn">
+              Попробовать снова
+            </button>
+          </div>
         </div>
-      </header>
+      )}
 
-      <div className="filters">
-        <select>
-          <option>Все языки</option>
-          <option>C/C++</option>
-        </select>
-        <select>
-          <option>Все типы</option>
-          <option>Бесплатные</option>
-          <option>Платные</option>
-        </select>
-        <select>
-          <option>Все категории</option>
-          <option>Сортировка</option>
-          <option>Поиск</option>
-          <option>Графы</option>
-        </select>
-      </div>
+      <section className="filters-section">
+        <div className="filters-container">
+          <div className="filter-group">
+            <label htmlFor="language-filter" className="filter-label">Язык программирования</label>
+            <select 
+              id="language-filter"
+              value={languageFilter} 
+              onChange={(e) => setLanguageFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">Все языки</option>
+              <option value="C++">C/C++</option>
+              <option value="Python">Python</option>
+              <option value="JavaScript">JavaScript</option>
+              <option value="Java">Java</option>
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label htmlFor="type-filter" className="filter-label">Тип алгоритма</label>
+            <select 
+              id="type-filter"
+              value={typeFilter} 
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">Все типы</option>
+              <option value="free">Бесплатные</option>
+              <option value="paid">Платные</option>
+            </select>
+          </div>
+          
+          <div className="results-info">
+            <span className="results-count">{filteredAlgorithms.length}</span>
+            <span className="results-text">алгоритмов найдено</span>
+          </div>
+          
+          <button onClick={handleReset} className="reset-filters-btn">
+            Сбросить фильтры
+          </button>
+        </div>
+      </section>
 
-      <div className="algorithms-grid">
-        {algorithms.map(algorithm => (
-          <AlgorithmCard key={algorithm.id} algorithm={algorithm} />
-        ))}
-      </div>
-    </div>
-  );
+      <section className="algorithms-section">
+        {filteredAlgorithms.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">🔍</div>
+            <h3 className="empty-title">Ничего не найдено</h3>
+            <p className="empty-description">
+              Попробуйте изменить параметры поиска или фильтры
+            </p>
+            <button onClick={handleReset} className="primary-btn">
+              Показать все алгоритмы
+            </button>
+          </div>
+        ) : (
+          <div className="algorithms-grid">
+            {filteredAlgorithms.map(algorithm => (
+              <AlgorithmCard key={algorithm.id} algorithm={algorithm} />
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
+  </div>
+);
 };
 
 const AlgorithmCard: React.FC<{ algorithm: Algorithm }> = ({ algorithm }) => {
   return (
-    <div className="algorithm-card">
-      <h3>{algorithm.title}</h3>
-      <p>{algorithm.description}</p>
-      <div className="tags">
-        {algorithm.tags.map(tag => (
-          <span key={tag} className="tag">{tag}</span>
-        ))}
+    <div className={`algorithm-card ${algorithm.isPaid ? 'paid' : 'free'}`}>
+      <div className="card-header">
+        <div className="card-title-section">
+          <h3 className="card-title">{algorithm.title}</h3>
+          <div className="card-meta">
+            <span className="card-date">
+              {new Date(algorithm.createdAt).toLocaleDateString('ru-RU')}
+            </span>
+          </div>
+        </div>
+        <div className="card-badges">
+          <span className="language-badge">{algorithm.language}</span>
+          <span className={`type-badge ${algorithm.isPaid ? 'paid' : 'free'}`}>
+            {algorithm.isPaid ? (algorithm.price ? `${algorithm.price} руб.` : 'Платный') : 'Бесплатный'}
+          </span>
+        </div>
       </div>
-      <div className="card-footer">
-        <span className={`price ${algorithm.isPaid ? 'paid' : 'free'}`}>
-          {algorithm.isPaid ? 'Платный' : 'Бесплатный'}
-        </span>
-        <button>Подробнее</button>
+      
+      <p className="card-description">{algorithm.description}</p>
+      
+      <div className="card-details">
+        <div className="detail-item">
+          <span className="detail-label">👤 Автор</span>
+          <span className="detail-value">{algorithm.author}</span>
+        </div>
+        <div className="detail-item">
+          <span className="detail-label">⚙️ Компилятор</span>
+          <span className="detail-value">{algorithm.compiler}</span>
+        </div>
+      </div>
+
+      {algorithm.tags.length > 0 && (
+        <div className="card-tags">
+          {algorithm.tags.map(tag => (
+            <span key={tag} className="tag">{tag}</span>
+          ))}
+        </div>
+      )}
+
+      <div className="card-actions">
+        <Link to={`/algorithm/${algorithm.id}`} className="details-btn">
+          <span>Подробнее</span>
+          <span className="btn-arrow">→</span>
+        </Link>
       </div>
     </div>
   );

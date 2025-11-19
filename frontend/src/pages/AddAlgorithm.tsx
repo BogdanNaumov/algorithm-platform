@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { apiService } from '../service/api';
+import { Algorithm } from '../types';
 
 const AddAlgorithm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -11,16 +13,68 @@ const AddAlgorithm: React.FC = () => {
     tags: '',
     isPaid: false,
     price: '100',
-    language: 'cpp',
-    compiler: 'g++'
+    language: 'C++',
+    compiler: 'g++',
+    author: '' // Добавляем поле автора
   });
 
   const [showPrice, setShowPrice] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Данные формы:', formData);
-    alert('Алгоритм отправлен на проверку!');
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      // Преобразуем теги из строки в массив
+      const tagsArray = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+      
+      // Подготавливаем данные для отправки
+      const algorithmData: Partial<Algorithm> = {
+        title: formData.title,
+        description: formData.description,
+        code: formData.code,
+        tags: tagsArray,
+        isPaid: formData.isPaid,
+        price: formData.isPaid ? Number(formData.price) : undefined,
+        language: formData.language,
+        compiler: formData.compiler,
+        author: formData.author || 'Анонимный автор' // Если автор не указан
+      };
+
+      console.log('Отправка данных:', algorithmData);
+      
+      // Отправляем на бэкенд
+      const createdAlgorithm = await apiService.createAlgorithm(algorithmData);
+      
+      console.log('Алгоритм создан:', createdAlgorithm);
+      setSuccess(true);
+      
+      // Сбрасываем форму после успешного добавления
+      setFormData({
+        title: '',
+        description: '',
+        code: '#include <iostream>\n#include <vector>\n\nusing namespace std;\n\n// Ваш алгоритм здесь\nvoid yourAlgorithm() {\n    // Реализация алгоритма\n    cout << "Hello, Algorithm Platform!" << endl;\n}',
+        tags: '',
+        isPaid: false,
+        price: '100',
+        language: 'C++',
+        compiler: 'g++',
+        author: ''
+      });
+      setShowPrice(false);
+
+    } catch (err) {
+      console.error('Ошибка при создании алгоритма:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка при отправке алгоритма';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -49,7 +103,6 @@ const AddAlgorithm: React.FC = () => {
     if (newIsPaid) {
       setShowPrice(true);
     } else {
-      // Задержка для анимации скрытия
       setTimeout(() => setShowPrice(false), 300);
     }
   };
@@ -57,7 +110,33 @@ const AddAlgorithm: React.FC = () => {
   return (
     <div className="add-algorithm-page">
       <h1>Добавить новый алгоритм</h1>
+      
+      {error && (
+        <div className="error-message">
+          <strong>Ошибка:</strong> {error}
+        </div>
+      )}
+      
+      {success && (
+        <div className="success-message">
+          ✅ Алгоритм успешно отправлен на модерацию!
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="author">Автор</label>
+          <input
+            type="text"
+            id="author"
+            name="author"
+            value={formData.author}
+            onChange={handleChange}
+            placeholder="Ваше имя или псевдоним"
+            required
+          />
+        </div>
+
         <div className="form-group">
           <label htmlFor="title">Название алгоритма</label>
           <input
@@ -80,6 +159,7 @@ const AddAlgorithm: React.FC = () => {
             onChange={handleChange}
             placeholder="Опишите алгоритм, его особенности и применение"
             required
+            rows={4}
           />
         </div>
 
@@ -92,7 +172,10 @@ const AddAlgorithm: React.FC = () => {
               value={formData.language}
               onChange={handleChange}
             >
-              <option value="cpp">C/C++</option>
+              <option value="C++">C/C++</option>
+              <option value="Python">Python</option>
+              <option value="JavaScript">JavaScript</option>
+              <option value="Java">Java</option>
             </select>
           </div>
 
@@ -108,6 +191,9 @@ const AddAlgorithm: React.FC = () => {
               <option value="gcc">gcc (GCC)</option>
               <option value="clang">clang (LLVM)</option>
               <option value="clang++">clang++ (LLVM)</option>
+              <option value="python">Python Interpreter</option>
+              <option value="node">Node.js</option>
+              <option value="java">Java Compiler</option>
             </select>
           </div>
         </div>
@@ -146,8 +232,9 @@ const AddAlgorithm: React.FC = () => {
             name="tags"
             value={formData.tags}
             onChange={handleChange}
-            placeholder="сортировка, C++, алгоритмы"
+            placeholder="сортировка, C++, алгоритмы, графы"
           />
+          <small>Укажите ключевые слова для поиска алгоритма</small>
         </div>
 
         <div className="form-group">
@@ -178,6 +265,7 @@ const AddAlgorithm: React.FC = () => {
                     max="10000"
                     placeholder="100"
                     className="price-input"
+                    disabled={!formData.isPaid}
                   />
                   <span className="currency">руб.</span>
                 </div>
@@ -187,10 +275,46 @@ const AddAlgorithm: React.FC = () => {
           </div>
         </div>
 
-        <button type="submit" className="submit-btn">
-          Отправить на проверку
+        <button 
+          type="submit" 
+          className="submit-btn"
+          disabled={loading}
+        >
+          {loading ? 'Отправка...' : 'Отправить на проверку'}
         </button>
       </form>
+
+      <style jsx>{`
+        .error-message {
+          background-color: #f8d7da;
+          color: #721c24;
+          padding: 12px;
+          border-radius: 4px;
+          margin-bottom: 20px;
+          border: 1px solid #f5c6cb;
+        }
+
+        .success-message {
+          background-color: #d4edda;
+          color: #155724;
+          padding: 12px;
+          border-radius: 4px;
+          margin-bottom: 20px;
+          border: 1px solid #c3e6cb;
+        }
+
+        .submit-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        small {
+          color: #666;
+          font-size: 12px;
+          margin-top: 4px;
+          display: block;
+        }
+      `}</style>
     </div>
   );
 };

@@ -1,14 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Home from './pages/Home';
 import AddAlgorithm from './pages/AddAlgorithm';
 import Profile from './pages/Profile';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import AlgorithmDetails from './pages/AlgorithmDetails';
+import Moderation from './pages/Moderation';
+
+// Компонент для защищенных маршрутов
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="loading">Загрузка...</div>;
+  }
+  
+  return user ? <>{children}</> : <Navigate to="/login" />;
+};
 
 // Создаем отдельный компонент для основного контента, который использует useLocation
 function AppContent() {
   const [activeTab, setActiveTab] = useState('/');
   const location = useLocation();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     setActiveTab(location.pathname);
@@ -57,6 +74,43 @@ function AppContent() {
     }
   };
 
+  // Определяем, активна ли кнопка входа/регистрации
+  const isAuthPageActive = location.pathname === '/login' || location.pathname === '/register';
+
+  // Улучшенная проверка прав модератора
+  const hasModerationAccess = () => {
+    if (!user) return false;
+    
+    // Для отладки - выводим информацию о пользователе
+    console.log('User object for moderation access check:', user);
+    
+    const userAny = user as any;
+    
+    // 1. Проверяем поле role
+    if (user.role === 'moderator' || user.role === 'admin') return true;
+    
+    // 2. Проверяем другие возможные поля
+    if (userAny.is_staff || userAny.is_superuser || userAny.is_moderator) return true;
+    
+    // 3. Проверяем группы пользователя
+    if (userAny.groups && (
+      userAny.groups.includes('Модераторы') || 
+      userAny.groups.includes('Moderators') ||
+      userAny.groups.includes('Администраторы') ||
+      userAny.groups.includes('Administrators')
+    )) return true;
+    
+    // 4. Проверяем по username (если суперпользователь имеет определенное имя)
+    const adminUsernames = ['admin', 'administrator', 'superuser', 'root'];
+    if (adminUsernames.includes(user.username.toLowerCase())) return true;
+    
+    // 5. Временное решение для тестирования - разрешить всем авторизованным пользователям
+    // ЗАКОММЕНТИРУЙТЕ ЭТУ СТРОКУ ПОСЛЕ ТЕСТИРОВАНИЯ!
+    return true;
+    
+    // return false; // Раскомментируйте эту строку после тестирования
+  };
+
   return (
     <>
       <nav className="navbar">
@@ -84,45 +138,94 @@ function AppContent() {
             </Link>
           </motion.div>
 
-          <motion.div 
-            className={`nav-item ${activeTab === '/add-algorithm' ? 'active' : ''}`}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Link to="/add-algorithm" onClick={() => setActiveTab('/add-algorithm')}>
-              <motion.span
-                variants={tabVariants}
-                animate={activeTab === '/add-algorithm' ? 'active' : 'inactive'}
-              >
-                Добавить алгоритм
-              </motion.span>
-              <motion.div 
-                className="nav-underline"
-                variants={underlineVariants}
-                animate={activeTab === '/add-algorithm' ? 'active' : 'inactive'}
-              />
-            </Link>
-          </motion.div>
+          {/* Показываем "Добавить алгоритм" только авторизованным пользователям */}
+          {user && (
+            <motion.div 
+              className={`nav-item ${activeTab === '/add-algorithm' ? 'active' : ''}`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Link to="/add-algorithm" onClick={() => setActiveTab('/add-algorithm')}>
+                <motion.span
+                  variants={tabVariants}
+                  animate={activeTab === '/add-algorithm' ? 'active' : 'inactive'}
+                >
+                  Добавить алгоритм
+                </motion.span>
+                <motion.div 
+                  className="nav-underline"
+                  variants={underlineVariants}
+                  animate={activeTab === '/add-algorithm' ? 'active' : 'inactive'}
+                />
+              </Link>
+            </motion.div>
+          )}
 
-          <motion.div 
-            className={`nav-item ${activeTab === '/profile' ? 'active' : ''}`}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Link to="/profile" onClick={() => setActiveTab('/profile')}>
-              <motion.span
-                variants={tabVariants}
-                animate={activeTab === '/profile' ? 'active' : 'inactive'}
-              >
-                Профиль
-              </motion.span>
-              <motion.div 
-                className="nav-underline"
-                variants={underlineVariants}
-                animate={activeTab === '/profile' ? 'active' : 'inactive'}
-              />
-            </Link>
-          </motion.div>
+          {/* Показываем "Модерация" только пользователям с правами модератора */}
+          {hasModerationAccess() && (
+            <motion.div 
+              className={`nav-item ${activeTab === '/moderation' ? 'active' : ''}`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Link to="/moderation" onClick={() => setActiveTab('/moderation')}>
+                <motion.span
+                  variants={tabVariants}
+                  animate={activeTab === '/moderation' ? 'active' : 'inactive'}
+                >
+                  Модерация
+                </motion.span>
+                <motion.div 
+                  className="nav-underline"
+                  variants={underlineVariants}
+                  animate={activeTab === '/moderation' ? 'active' : 'inactive'}
+                />
+              </Link>
+            </motion.div>
+          )}
+
+          {/* Условный рендеринг для Профиля/Входа */}
+          {user ? (
+            <motion.div 
+              className={`nav-item ${activeTab === '/profile' ? 'active' : ''}`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Link to="/profile" onClick={() => setActiveTab('/profile')}>
+                <motion.span
+                  variants={tabVariants}
+                  animate={activeTab === '/profile' ? 'active' : 'inactive'}
+                >
+                  Профиль ({user.username})
+                </motion.span>
+                <motion.div 
+                  className="nav-underline"
+                  variants={underlineVariants}
+                  animate={activeTab === '/profile' ? 'active' : 'inactive'}
+                />
+              </Link>
+            </motion.div>
+          ) : (
+            <motion.div 
+              className={`nav-item ${isAuthPageActive ? 'active' : ''}`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Link to="/login" onClick={() => setActiveTab('/login')}>
+                <motion.span
+                  variants={tabVariants}
+                  animate={isAuthPageActive ? 'active' : 'inactive'}
+                >
+                  Войти/Зарегистрироваться
+                </motion.span>
+                <motion.div 
+                  className="nav-underline"
+                  variants={underlineVariants}
+                  animate={isAuthPageActive ? 'active' : 'inactive'}
+                />
+              </Link>
+            </motion.div>
+          )}
         </div>
       </nav>
 
@@ -139,26 +242,84 @@ function AppContent() {
               <Home />
             </motion.div>
           } />
+          
+          {/* Защищенные маршруты */}
           <Route path="/add-algorithm" element={
+            <ProtectedRoute>
+              <motion.div
+                key="add-algorithm"
+                initial="initial"
+                animate="in"
+                exit="out"
+                variants={pageVariants}
+              >
+                <AddAlgorithm />
+              </motion.div>
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <motion.div
+                key="profile"
+                initial="initial"
+                animate="in"
+                exit="out"
+                variants={pageVariants}
+              >
+                <Profile />
+              </motion.div>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/moderation" element={
+            <ProtectedRoute>
+              <motion.div
+                key="moderation"
+                initial="initial"
+                animate="in"
+                exit="out"
+                variants={pageVariants}
+              >
+                <Moderation />
+              </motion.div>
+            </ProtectedRoute>
+          } />
+          
+          {/* Публичные маршруты */}
+          <Route path="/login" element={
             <motion.div
-              key="add-algorithm"
+              key="login"
               initial="initial"
               animate="in"
               exit="out"
               variants={pageVariants}
             >
-              <AddAlgorithm />
+              <Login />
             </motion.div>
           } />
-          <Route path="/profile" element={
+          
+          <Route path="/register" element={
             <motion.div
-              key="profile"
+              key="register"
               initial="initial"
               animate="in"
               exit="out"
               variants={pageVariants}
             >
-              <Profile />
+              <Register />
+            </motion.div>
+          } />
+          
+          <Route path="/algorithm/:id" element={
+            <motion.div
+              key="algorithm-details"
+              initial="initial"
+              animate="in"
+              exit="out"
+              variants={pageVariants}
+            >
+              <AlgorithmDetails />
             </motion.div>
           } />
         </Routes>
@@ -167,12 +328,14 @@ function AppContent() {
   );
 }
 
-// Основной компонент App теперь только оборачивает в Router
+// Основной компонент App теперь оборачивает в AuthProvider и Router
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <AuthProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </AuthProvider>
   );
 }
 

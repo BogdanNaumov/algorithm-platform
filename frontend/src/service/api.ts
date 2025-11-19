@@ -22,6 +22,12 @@ export interface ApiAlgorithm {
 }
 
 class ApiService {
+  constructor() {
+    // Привязываем контекст методов
+    this.transformAlgorithm = this.transformAlgorithm.bind(this);
+    this.transformModeratedAlgorithm = this.transformModeratedAlgorithm.bind(this);
+  }
+
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     const token = localStorage.getItem('accessToken');
@@ -126,8 +132,8 @@ class ApiService {
     };
   }
 
-  async getUserAlgorithms(username: string): Promise<Algorithm[]> {
-    const response = await this.request(`/users/${username}/algorithms/`);
+  async getUserAlgorithms(username: string): Promise<ModeratedAlgorithm[]> {
+    const response = await this.request<any>(`/users/${username}/algorithms/`);
     
     // Обрабатываем разные форматы ответа
     let algorithmsArray: any[] = [];
@@ -140,7 +146,7 @@ class ApiService {
       algorithmsArray = Object.values(response);
     }
     
-    return algorithmsArray.map(this.transformAlgorithm);
+    return algorithmsArray.map(this.transformModeratedAlgorithm);
   }
 
   async updateUser(userData: Partial<User>): Promise<User> {
@@ -159,23 +165,32 @@ class ApiService {
     };
   }
 
-  async getAlgorithms(searchQuery?: string): Promise<Algorithm[]> {
+  async getAlgorithms(searchQuery?: string): Promise<ModeratedAlgorithm[]> {
     try {
       const query = searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : '';
-      const response = await this.request(`/algorithms/${query}`);
+      const response = await this.request<any>(`/algorithms/${query}`);
       
-      const algorithmsArray = Array.isArray(response) ? response : response.results || [];
-      return algorithmsArray.map(this.transformAlgorithm);
+      let algorithmsArray: any[] = [];
+      
+      if (Array.isArray(response)) {
+        algorithmsArray = response;
+      } else if (response.results && Array.isArray(response.results)) {
+        algorithmsArray = response.results;
+      } else {
+        algorithmsArray = Object.values(response);
+      }
+      
+      return algorithmsArray.map(this.transformModeratedAlgorithm);
     } catch (error) {
       console.error('Failed to fetch algorithms:', error);
       throw error;
     }
   }
 
-  async getAlgorithmById(id: string): Promise<Algorithm> {
+  async getAlgorithmById(id: string): Promise<ModeratedAlgorithm> {
     try {
-      const algorithm: ApiAlgorithm = await this.request(`/algorithms/${id}/`);
-      return this.transformAlgorithm(algorithm);
+      const algorithm: ApiAlgorithm = await this.request<ApiAlgorithm>(`/algorithms/${id}/`);
+      return this.transformModeratedAlgorithm(algorithm);
     } catch (error) {
       console.error(`Failed to fetch algorithm ${id}:`, error);
       throw error;
@@ -184,7 +199,7 @@ class ApiService {
 
   async createAlgorithm(algorithmData: Partial<Algorithm>): Promise<Algorithm> {
     try {
-      const apiAlgorithm = await this.request('/algorithms/', {
+      const apiAlgorithm = await this.request<ApiAlgorithm>('/algorithms/', {
         method: 'POST',
         body: JSON.stringify(this.prepareAlgorithmData(algorithmData)),
       });
@@ -198,8 +213,19 @@ class ApiService {
   // Методы для модерации
   async getModerationAlgorithms(): Promise<ModeratedAlgorithm[]> {
     try {
-      const response = await this.request<any[]>('/algorithms/moderation/');
-      return response.map(this.transformModeratedAlgorithm);
+      const response = await this.request<any>('/algorithms/moderation/');
+      
+      let algorithmsArray: any[] = [];
+      
+      if (Array.isArray(response)) {
+        algorithmsArray = response;
+      } else if (response.results && Array.isArray(response.results)) {
+        algorithmsArray = response.results;
+      } else {
+        algorithmsArray = Object.values(response);
+      }
+      
+      return algorithmsArray.map(this.transformModeratedAlgorithm);
     } catch (error) {
       console.error('Failed to fetch moderation algorithms:', error);
       throw error;
@@ -208,8 +234,22 @@ class ApiService {
 
   async getAllAlgorithms(): Promise<ModeratedAlgorithm[]> {
     try {
-      const response = await this.request<any[]>('/algorithms/');
-      return response.map(this.transformModeratedAlgorithm);
+      const response = await this.request<any>('/algorithms/');
+      
+      let algorithmsArray: any[] = [];
+      
+      if (Array.isArray(response)) {
+        algorithmsArray = response;
+      } else if (response.results && Array.isArray(response.results)) {
+        algorithmsArray = response.results;
+      } else {
+        algorithmsArray = Object.values(response);
+      }
+      
+      console.log('Raw API response:', response);
+      console.log('Processed algorithms array:', algorithmsArray);
+      
+      return algorithmsArray.map(this.transformModeratedAlgorithm);
     } catch (error) {
       console.error('Failed to fetch all algorithms:', error);
       throw error;
@@ -229,6 +269,7 @@ class ApiService {
   }
 
   private transformAlgorithm(apiAlgorithm: ApiAlgorithm): Algorithm {
+    console.log('Transforming algorithm:', apiAlgorithm);
     return {
       id: apiAlgorithm.id.toString(),
       title: apiAlgorithm.name,
@@ -246,6 +287,7 @@ class ApiService {
   }
 
   private transformModeratedAlgorithm(apiAlgorithm: any): ModeratedAlgorithm {
+    console.log('Transforming moderated algorithm:', apiAlgorithm);
     const baseAlgorithm = this.transformAlgorithm(apiAlgorithm);
     return {
       ...baseAlgorithm,
@@ -253,7 +295,7 @@ class ApiService {
       rejection_reason: apiAlgorithm.rejection_reason,
       moderated_by: apiAlgorithm.moderated_by,
       moderated_at: apiAlgorithm.moderated_at,
-      author_name: apiAlgorithm.author_name,
+      author_name: apiAlgorithm.author_name || apiAlgorithm.author,
     };
   }
 

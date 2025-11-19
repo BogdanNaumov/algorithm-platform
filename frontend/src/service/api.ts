@@ -121,14 +121,53 @@ class ApiService {
 
   async getCurrentUser(): Promise<User> {
     const userData = await this.request<any>('/users/me/');
-    // Преобразуем id из number в string и обеспечиваем наличие всех полей
+    
+    // Отладочная информация
+    console.log('Raw user data from API:', userData);
+    
+    // Определяем роль пользователя
+    let userRole: User['role'] = 'consumer';
+    
+    // 1. Проверяем стандартное поле role
+    if (userData.role && (userData.role === 'moderator' || userData.role === 'admin')) {
+      userRole = userData.role;
+    }
+    // 2. Проверяем Django-specific поля
+    else if (userData.is_staff || userData.is_superuser) {
+      userRole = 'moderator';
+    }
+    // 3. Проверяем группы пользователя
+    else if (userData.groups && Array.isArray(userData.groups)) {
+      const groupNames = userData.groups.map((group: any) => 
+        typeof group === 'string' ? group.toLowerCase() : 
+        (group.name ? group.name.toLowerCase() : '')
+      );
+      
+      const moderatorGroups = [
+        'moderator', 'moderators', 'модератор', 'модераторы',
+        'admin', 'administrators', 'администратор', 'администраторы'
+      ];
+      
+      if (groupNames.some((group: string) => moderatorGroups.includes(group))) {
+        userRole = 'moderator';
+      }
+    }
+    // 4. Временная заглушка для тестирования
+    else if (['admin', 'moderator', 'testmod', 'administrator'].includes(userData.username?.toLowerCase())) {
+      userRole = 'moderator';
+    }
+    
+    console.log('Determined user role:', userRole);
+    
     return {
       id: userData.id?.toString() || '',
       username: userData.username || '',
       email: userData.email || '',
       first_name: userData.first_name || '',
       last_name: userData.last_name || '',
-      role: userData.role || 'consumer',
+      role: userRole,
+      // Сохраняем все данные пользователя для дополнительных проверок
+      ...userData
     };
   }
 
@@ -162,6 +201,7 @@ class ApiService {
       first_name: updatedUser.first_name || '',
       last_name: updatedUser.last_name || '',
       role: updatedUser.role || 'consumer',
+      ...updatedUser
     };
   }
 
@@ -269,7 +309,6 @@ class ApiService {
   }
 
   private transformAlgorithm(apiAlgorithm: ApiAlgorithm): Algorithm {
-    console.log('Transforming algorithm:', apiAlgorithm);
     return {
       id: apiAlgorithm.id.toString(),
       title: apiAlgorithm.name,
@@ -287,7 +326,6 @@ class ApiService {
   }
 
   private transformModeratedAlgorithm(apiAlgorithm: any): ModeratedAlgorithm {
-    console.log('Transforming moderated algorithm:', apiAlgorithm);
     const baseAlgorithm = this.transformAlgorithm(apiAlgorithm);
     return {
       ...baseAlgorithm,

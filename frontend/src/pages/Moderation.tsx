@@ -15,8 +15,14 @@ const Moderation: React.FC = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
   
   const { user } = useAuth();
+
+  useEffect(() => {
+    console.log('Current user in Moderation:', user);
+    console.log('Has moderation access:', hasModerationAccess());
+  }, [user]);
 
   useEffect(() => {
     fetchModerationAlgorithms();
@@ -38,12 +44,15 @@ const Moderation: React.FC = () => {
       }
       
       setAlgorithms(algorithmsData);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching moderation algorithms:', err);
-      if ((err as any).response?.status === 403) {
+      
+      if (err.response?.status === 403) {
         setError('У вас нет прав для доступа к модерации');
-      } else if ((err as any).response?.status === 404) {
+      } else if (err.response?.status === 404) {
         setError('Эндпоинт модерации не найден. Возможно, требуется настройка бэкенда.');
+      } else if (err.message?.includes('Network error')) {
+        setError('Ошибка сети. Проверьте подключение к серверу.');
       } else {
         setError('Не удалось загрузить алгоритмы для модерации');
       }
@@ -52,8 +61,15 @@ const Moderation: React.FC = () => {
     }
   };
 
-  const handleOpenModerationDialog = (algorithm: ModeratedAlgorithm) => {
+  const handleOpenApproveDialog = (algorithm: ModeratedAlgorithm) => {
     setSelectedAlgorithm(algorithm);
+    setActionType('approve');
+    setModerationDialogOpen(true);
+  };
+
+  const handleOpenRejectDialog = (algorithm: ModeratedAlgorithm) => {
+    setSelectedAlgorithm(algorithm);
+    setActionType('reject');
     setRejectionReason('');
     setModerationDialogOpen(true);
   };
@@ -62,16 +78,18 @@ const Moderation: React.FC = () => {
     setModerationDialogOpen(false);
     setSelectedAlgorithm(null);
     setRejectionReason('');
+    setActionType(null);
   };
 
-  const moderateAlgorithm = async (status: 'approved' | 'rejected') => {
-    if (!selectedAlgorithm) return;
+  const moderateAlgorithm = async () => {
+    if (!selectedAlgorithm || !actionType) return;
 
     setActionLoading(true);
     try {
+      const status = actionType === 'approve' ? 'approved' : 'rejected';
       await apiService.moderateAlgorithm(selectedAlgorithm.id, {
         status,
-        rejection_reason: status === 'rejected' ? rejectionReason : ''
+        rejection_reason: actionType === 'reject' ? rejectionReason : ''
       });
       
       // Удаляем алгоритм из списка после модерации
@@ -101,24 +119,77 @@ const Moderation: React.FC = () => {
   const hasModerationAccess = () => {
     if (!user) return false;
     
+    console.log('Checking moderation access for user:', user);
+    
     // Проверяем различные возможные поля, которые могут указывать на права модератора/администратора
     const userAny = user as any;
     
-    // Проверяем поле role
-    if (user.role === 'moderator' || user.role === 'admin') return true;
+    // 1. Проверяем поле role
+    if (user.role === 'moderator' || user.role === 'admin') {
+      console.log('Access granted by role:', user.role);
+      return true;
+    }
     
-    // Проверяем другие возможные поля
-    if (userAny.is_staff || userAny.is_superuser || userAny.is_moderator) return true;
+    // 2. Проверяем Django-specific поля
+    if (userAny.is_staff || userAny.is_superuser) {
+      console.log('Access granted by Django fields - is_staff:', userAny.is_staff, 'is_superuser:', userAny.is_superuser);
+      return true;
+    }
     
-    // Проверяем группы пользователя
-    if (userAny.groups && (
-      userAny.groups.includes('Модераторы') || 
-      userAny.groups.includes('Moderators') ||
-      userAny.groups.includes('Администраторы') ||
-      userAny.groups.includes('Administrators')
-    )) return true;
+    // 3. Проверяем группы пользователя
+    if (userAny.groups) {
+      let groups: string[] = [];
+      
+      // Обрабатываем разные форматы групп
+      if (Array.isArray(userAny.groups)) {
+        groups = userAny.groups.map((group: any) => 
+          typeof group === 'string' ? group.toLowerCase() : 
+          (group.name ? group.name.toLowerCase() : '')
+        );
+      }
+      
+      const moderatorGroups = [
+        'moderator', 'moderators', 'модератор', 'модераторы',
+        'admin', 'administrators', 'администратор', 'администраторы'
+      ];
+      
+      const hasModeratorGroup = groups.some((group: string) => 
+        moderatorGroups.includes(group)
+      );
+      
+      if (hasModeratorGroup) {
+        console.log('Access granted by groups:', groups);
+        return true;
+      }
+    }
     
+    // 4. Временная заглушка для тестирования - разрешить доступ для определенных пользователей
+    const testModerators = ['admin', 'moderator', 'testmod', 'administrator'];
+    if (testModerators.includes(user.username.toLowerCase())) {
+      console.log('Access granted for test user:', user.username);
+      return true;
+    }
+    
+    console.log('Access DENIED for user:', user);
     return false;
+  };
+
+  const getUserRoleDisplay = () => {
+    if (!user) return 'не авторизован';
+    
+    const userAny = user as any;
+    
+    if (user.role) return user.role;
+    if (userAny.is_superuser) return 'admin';
+    if (userAny.is_staff) return 'staff';
+    if (userAny.groups && userAny.groups.length > 0) {
+      const groups = Array.isArray(userAny.groups) 
+        ? userAny.groups.map((g: any) => typeof g === 'string' ? g : g.name)
+        : [];
+      return groups.join(', ');
+    }
+    
+    return 'consumer';
   };
 
   // Проверяем права доступа
@@ -144,11 +215,22 @@ const Moderation: React.FC = () => {
         <div className="error-container">
           <div className="error-icon">🚫</div>
           <div className="error-text">
-            У вас нет прав для доступа к этой странице. Только модераторы и администраторы могут просматривать эту страницу.
-            <br /><br />
-            Ваша роль: {user.role || 'не указана'}
-            <br />
-            Обратитесь к администратору для получения прав модератора.
+            <h3>Доступ запрещен</h3>
+            <p>У вас нет прав для доступа к этой странице. Только модераторы и администраторы могут просматривать эту страницу.</p>
+            
+            <div className="user-info-details">
+              <p><strong>Информация о вашем аккаунте:</strong></p>
+              <ul>
+                <li>Имя пользователя: {user.username}</li>
+                <li>Определенная роль: {getUserRoleDisplay()}</li>
+                <li>ID: {user.id}</li>
+                <li>Email: {user.email}</li>
+              </ul>
+            </div>
+            
+            <p className="contact-admin">
+              Если вы считаете, что это ошибка, обратитесь к администратору для получения прав модератора.
+            </p>
           </div>
         </div>
       </div>
@@ -166,7 +248,7 @@ const Moderation: React.FC = () => {
           Здесь вы можете просматривать и модерировать алгоритмы, отправленные пользователями.
         </p>
         <div className="user-info">
-          Вы вошли как: <strong>{user.username}</strong> (Роль: {user.role || 'не указана'})
+          Вы вошли как: <strong>{user.username}</strong> (Роль: {getUserRoleDisplay()})
         </div>
       </div>
 
@@ -214,138 +296,66 @@ const Moderation: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="algorithms-list">
+        <div className="algorithms-grid">
           {displayAlgorithms.map((algorithm) => (
-            <div key={algorithm.id} className="moderation-card">
-              <div className="card-header">
-                <div className="card-title-section">
-                  <div className="title-row">
-                    <h3 className="algorithm-title">
-                      <Link to={`/algorithm/${algorithm.id}`}>{algorithm.title}</Link>
-                    </h3>
-                    <span 
-                      className="status-badge"
-                      style={{ backgroundColor: getStatusColor(algorithm.status) }}
-                    >
-                      {ALGORITHM_STATUS_DISPLAY[algorithm.status]}
-                    </span>
-                  </div>
-                  
-                  <div className="algorithm-meta">
-                    <span className="meta-item">
-                      <span className="meta-label">Автор:</span>
-                      <span className="meta-value">{algorithm.author_name}</span>
-                    </span>
-                    <span className="meta-divider">•</span>
-                    <span className="meta-item">
-                      <span className="meta-label">Создан:</span>
-                      <span className="meta-value">
-                        {new Date(algorithm.createdAt).toLocaleDateString('ru-RU')}
-                      </span>
-                    </span>
-                  </div>
-
-                  {algorithm.tags.length > 0 && (
-                    <div className="algorithm-tags">
-                      {algorithm.tags.map((tag, index) => (
-                        <span key={index} className="tag">{tag}</span>
-                      ))}
-                    </div>
-                  )}
-
-                  <p className="algorithm-description">
-                    {truncateText(algorithm.description, 200)}
-                  </p>
-
-                  <div className="code-info">
-                    <span className="code-icon">💻</span>
-                    <span className="code-text">
-                      Код: {algorithm.code?.length || 0} символов
-                    </span>
-                  </div>
-
-                  {algorithm.status === 'rejected' && algorithm.rejection_reason && (
-                    <div className="rejection-reason">
-                      <strong>Причина отклонения:</strong>
-                      <p>{algorithm.rejection_reason}</p>
-                    </div>
-                  )}
-
-                  {algorithm.moderated_by && (
-                    <div className="moderation-info">
-                      <span className="moderated-by">
-                        Модератор: {algorithm.moderated_by}
-                        {algorithm.moderated_at && (
-                          <> • {new Date(algorithm.moderated_at).toLocaleDateString('ru-RU')}</>
-                        )}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {algorithm.status === 'pending' && (
-                  <div className="moderation-actions">
-                    <button
-                      className="action-btn approve-btn"
-                      onClick={() => handleOpenModerationDialog(algorithm)}
-                    >
-                      <span className="btn-icon">✓</span>
-                      Одобрить
-                    </button>
-                    <button
-                      className="action-btn reject-btn"
-                      onClick={() => handleOpenModerationDialog(algorithm)}
-                    >
-                      <span className="btn-icon">✕</span>
-                      Отклонить
-                    </button>
-                    <Link
-                      to={`/algorithm/${algorithm.id}`}
-                      className="action-btn details-btn"
-                      target="_blank"
-                    >
-                      <span className="btn-icon">👁️</span>
-                      Подробнее
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </div>
+            <AlgorithmCard 
+              key={algorithm.id} 
+              algorithm={algorithm} 
+              onApprove={handleOpenApproveDialog}
+              onReject={handleOpenRejectDialog}
+            />
           ))}
         </div>
       )}
 
       {/* Диалог модерации */}
-      {moderationDialogOpen && (
+      {moderationDialogOpen && selectedAlgorithm && (
         <div className="modal-overlay">
           <div className="moderation-modal">
             <div className="modal-header">
-              <h3 className="modal-title">Модерация алгоритма</h3>
+              <h3 className="modal-title">
+                {actionType === 'approve' ? 'Одобрение алгоритма' : 'Отклонение алгоритма'}
+              </h3>
               <button className="modal-close" onClick={handleCloseModerationDialog}>×</button>
             </div>
             
             <div className="modal-content">
-              <h4 className="algorithm-name">{selectedAlgorithm?.title}</h4>
-              <p className="algorithm-author">
-                Автор: {selectedAlgorithm?.author_name}
-              </p>
-              
-              <div className="rejection-reason-input">
-                <label htmlFor="rejectionReason" className="input-label">
-                  Причина отклонения
-                </label>
-                <textarea
-                  id="rejectionReason"
-                  className="reason-textarea"
-                  placeholder="Укажите причину, если отклоняете алгоритм..."
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  rows={4}
-                />
-                <p className="input-helper">
-                  Обязательно для заполнения при отклонении
+              <div className="algorithm-preview">
+                <h4 className="algorithm-name">{selectedAlgorithm.title}</h4>
+                <p className="algorithm-author">
+                  Автор: {selectedAlgorithm.author_name}
+                </p>
+                <p className="algorithm-description">
+                  {truncateText(selectedAlgorithm.description, 150)}
                 </p>
               </div>
+
+              {actionType === 'approve' ? (
+                <div className="confirmation-message">
+                  <div className="confirmation-icon">✅</div>
+                  <p>Вы уверены, что хотите одобрить этот алгоритм?</p>
+                  <p className="confirmation-note">
+                    После одобрения алгоритм станет видимым для всех пользователей на главной странице.
+                  </p>
+                </div>
+              ) : (
+                <div className="rejection-reason-input">
+                  <label htmlFor="rejectionReason" className="input-label">
+                    Причина отклонения *
+                  </label>
+                  <textarea
+                    id="rejectionReason"
+                    className="reason-textarea"
+                    placeholder="Укажите причину отклонения алгоритма..."
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    rows={4}
+                  />
+                  <p className="input-helper">
+                    Обязательно для заполнения. Эта причина будет показана автору алгоритма.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="modal-actions">
@@ -357,23 +367,125 @@ const Moderation: React.FC = () => {
                 Отмена
               </button>
               <button
-                className="modal-btn approve-modal-btn"
-                onClick={() => moderateAlgorithm('approved')}
-                disabled={actionLoading}
+                className={`modal-btn ${actionType === 'approve' ? 'approve-modal-btn' : 'reject-modal-btn'}`}
+                onClick={moderateAlgorithm}
+                disabled={actionLoading || (actionType === 'reject' && !rejectionReason.trim())}
               >
-                <span className="btn-icon">✓</span>
-                Одобрить
-              </button>
-              <button
-                className="modal-btn reject-modal-btn"
-                onClick={() => moderateAlgorithm('rejected')}
-                disabled={actionLoading || !rejectionReason.trim()}
-              >
-                <span className="btn-icon">✕</span>
-                Отклонить
+                <span className="btn-icon">
+                  {actionType === 'approve' ? '✓' : '✕'}
+                </span>
+                {actionType === 'approve' ? 'Да, одобрить' : 'Отклонить'}
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Новый компонент карточки алгоритма в стиле главной страницы
+const AlgorithmCard: React.FC<{ 
+  algorithm: ModeratedAlgorithm;
+  onApprove: (algorithm: ModeratedAlgorithm) => void;
+  onReject: (algorithm: ModeratedAlgorithm) => void;
+}> = ({ algorithm, onApprove, onReject }) => {
+  return (
+    <div className={`algorithm-card ${algorithm.isPaid ? 'paid' : 'free'} moderation-view`}>
+      <div className="card-header">
+        <div className="card-title-section">
+          <h3 className="card-title">
+            <Link to={`/algorithm/${algorithm.id}`}>{algorithm.title}</Link>
+          </h3>
+          <div className="card-meta">
+            <span className="card-date">
+              {new Date(algorithm.createdAt).toLocaleDateString('ru-RU')}
+            </span>
+          </div>
+        </div>
+        <div className="card-badges">
+          <span className="language-badge">{algorithm.language}</span>
+          <span className={`type-badge ${algorithm.isPaid ? 'paid' : 'free'}`}>
+            {algorithm.isPaid ? (algorithm.price ? `${algorithm.price} руб.` : 'Платный') : 'Бесплатный'}
+          </span>
+          <span 
+            className="status-badge"
+            style={{ 
+              backgroundColor: ALGORITHM_STATUS_COLORS[algorithm.status as keyof typeof ALGORITHM_STATUS_COLORS] || '#6b7280'
+            }}
+          >
+            {ALGORITHM_STATUS_DISPLAY[algorithm.status]}
+          </span>
+        </div>
+      </div>
+      
+      <p className="card-description">{algorithm.description}</p>
+      
+      <div className="card-details">
+        <div className="detail-item">
+          <span className="detail-label">👤 Автор</span>
+          <span className="detail-value">{algorithm.author_name}</span>
+        </div>
+        <div className="detail-item">
+          <span className="detail-label">⚙️ Компилятор</span>
+          <span className="detail-value">{algorithm.compiler}</span>
+        </div>
+        <div className="detail-item">
+          <span className="detail-label">📏 Код</span>
+          <span className="detail-value">{algorithm.code?.length || 0} символов</span>
+        </div>
+      </div>
+
+      {algorithm.tags.length > 0 && (
+        <div className="card-tags">
+          {algorithm.tags.map(tag => (
+            <span key={tag} className="tag">{tag}</span>
+          ))}
+        </div>
+      )}
+
+      {algorithm.status === 'rejected' && algorithm.rejection_reason && (
+        <div className="rejection-notice">
+          <strong>Причина отклонения:</strong>
+          <p>{algorithm.rejection_reason}</p>
+        </div>
+      )}
+
+      {algorithm.moderated_by && (
+        <div className="moderation-info">
+          <span className="moderated-by">
+            Модератор: {algorithm.moderated_by}
+            {algorithm.moderated_at && (
+              <> • {new Date(algorithm.moderated_at).toLocaleDateString('ru-RU')}</>
+            )}
+          </span>
+        </div>
+      )}
+
+      {algorithm.status === 'pending' && (
+        <div className="card-actions moderation-actions">
+          <button
+            className="action-btn approve-btn"
+            onClick={() => onApprove(algorithm)}
+          >
+            <span className="btn-icon">✓</span>
+            Одобрить
+          </button>
+          <button
+            className="action-btn reject-btn"
+            onClick={() => onReject(algorithm)}
+          >
+            <span className="btn-icon">✕</span>
+            Отклонить
+          </button>
+          <Link
+            to={`/algorithm/${algorithm.id}`}
+            className="action-btn details-btn"
+            target="_blank"
+          >
+            <span className="btn-icon">👁️</span>
+            Подробнее
+          </Link>
         </div>
       )}
     </div>
